@@ -22,6 +22,7 @@ jetpack::add("readr")
 jetpack::add("dplyr")
 jetpack::add("stringr")
 library(dplyr)
+library(readr)
 
 # Read files and standardize data:
 ## Read L2data
@@ -57,9 +58,9 @@ za29 <- za29 %>%
     country == 'usa' ~ 'United_States',
     country == 'nz' ~ 'New_Zealand',
     country == 'irl' ~ 'Ireland',
-    country == 'cz' ~ 'Czech Republic',
+    country == 'cz' ~ 'Czech_Republic',
     country == 'h' ~ 'Hungary',
-    country == 'gb' ~ 'Great Britain',
+    country == 'gb' ~ 'Great_Britain',
     country == 'bg' ~ 'Bulgaria',
     country == 'cy' ~ 'Cyprus',
     country == 'i' ~ 'Italy',
@@ -72,7 +73,9 @@ za29 <- za29 %>%
     country == 'f' ~ 'France',
     country == 'lv' ~ 'Latvia',
     country == 'j' ~ 'Japan',
-    country == 'rp' ~ 'Russia',
+    country == 'rp' ~ 'Philippines',
+    country == 'rus' ~ 'Russia',
+    country == 'rch' ~ 'Chile',
     country == 'e' ~ 'Spain',
     country == 'cdn' ~ 'Canada',
     country == 'pl' ~ 'Poland',
@@ -123,7 +126,7 @@ za29 <- za29 %>%
 za47 <- za47 %>% 
   select(old_age_care = V28, unemployed = V30, reduce_income_diff = V31,
          jobs = V25, female = sex, age, education = degree, 
-         employment = spwrkst, country = V3) %>% 
+         employment = spwrkst, country = V3a) %>% 
   mutate(country = stringr::str_extract(country, '-[A-Za-z ]*'),
          country = stringr::str_remove(country, '-'),
          country = stringr::str_replace(country, ' ', 
@@ -156,46 +159,45 @@ za47 <- za47 %>%
 
 ## join za29 & za47
 za <- bind_rows(za29, za47)
-
-## lastly, we'll create a new variable, age_squared
-za$age_squared <- za$age^2
+readr::write_csv(za, "za.csv")
 
 ## merge with the ls data. As the dataset contains a
 ## spelling error (Isreal instead of Israel), we will
 ## fix that small typo before joining the datasets.
 ## we will also rename the variables before merging
-l2$country <- recode(l2$country, Isreal = "Israel")
 l2 <- l2 %>%
-      select(employment_rate = emprate, 
-             immigrant_stock = foreignpct,
-             welfare_expenditures = socx,
-             change_immigrant_stock = netmigpct,
-             year, country) %>%
-      mutate_at(1:5, as.numeric)
+      mutate(country = case_when(
+            country == 'Czech Republic' ~ 'Czech_Republic',
+            country == 'Isreal' ~ 'Israel',
+            country == 'New Zealand' ~ 'New_Zealand',
+            country == 'cz' ~ 'Czech_Republic',
+            country == 'United Kingdom' ~ 'Great_Britain',
+            country == 'United States' ~ 'United_States',
+            country == 'South Korea' ~ 'South_Korea',
+            TRUE ~ country)) 
 
-df <- left_join(l2, za, by = c("country", "year"))
+l2 <- l2 %>% select(employment_rate = emprate, immigrant_stock = foreignpct,
+                     welfare_expenditures = socx, change_immigrant_stock = netmigpct,
+                     year, country) %>% mutate_at(1:5, as.numeric) 
 
-## change reference categories
-df <- within(df, education <- relevel(as.factor(education),
-                                      ref = "Secondary"))
-df <- within(df, employment <- relevel(as.factor(employment),
-                                       ref = "Full-time"))
-df <- df %>%
-      select(year, country, everything())
+df <- left_join(l2, za, by = c("country", "year")) 
 
-## save data
-readr::write_csv(df, 'combined_data.csv')
+## change reference categories 
+df <- within(df, education <- relevel(as.factor(education), ref = "Secondary")) 
+df <- within(df, employment <- relevel(as.factor(employment), ref = "Full-time")) 
+df <- df %>% select(year, country, everything()) 
 
+## save data 
+readr::write_csv(df, 'combined_data.csv') 
 
-##################
+################## 
 ##### Models #####
 ##################
 names(df)
-
-summary(m1 <- glm(old_age_care ~ immigrant_stock + 
-                  female + age + age_squared + education + employment +
-                  factor(year) + factor(country),
-                  data = df, family = binomial(link = "logit")))
+summary(m1 <- glm(old_age_care ~ immigrant_stock +
+                 female + age + age_squared + education + employment +
+                 factor(year) + factor(country), 
+                 data = df, family = binomial(link = "logit")))
 
 summary(m2 <- glm(unemployed ~ immigrant_stock + 
                   female + age + age_squared + education + employment +
