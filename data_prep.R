@@ -58,10 +58,10 @@ za29 <- za29 %>%
     country == 'bg' ~ 'Bulgaria',
     country == 'cy' ~ 'Cyprus',
     country == 'i' ~ 'Italy',
-    country == 'IL-J' ~ 'Israel - jews',
-    country == 'IL-A' ~ 'Israel - arabs',
-    country == 'D-W' ~ 'West Germany',
-    country == 'D-E' ~ 'East Germany',
+    country == 'IL-J' ~ 'Israel',
+    country == 'IL-A' ~ 'Israel',
+    country == 'D-W' ~ 'Germany',
+    country == 'D-E' ~ 'Germany',
     country == 'n' ~ 'Norway',
     country == 'slo' ~ 'Slovenia',
     country == 'f' ~ 'France',
@@ -73,7 +73,10 @@ za29 <- za29 %>%
     country == 'pl' ~ 'Poland',
     country == 's' ~ 'Sweden',
     country == 'ch' ~ 'Switzerland'
-  ),
+  ), 
+    # as the ls data don't differentiate between West
+    # and East Germany and Arab/Jews in Israel,
+    # I've changed it to Germany and Israel
   female = ifelse(female == 'Female', 1,
                   ifelse(female == 'Male', 0, female)),
   female = as.numeric(female),
@@ -89,7 +92,8 @@ za29 <- za29 %>%
     employment == "Part-time employed,main job" ~ 'Part-time',
     employment == "Unemployed" ~ 'Active unemployed',
     TRUE ~ 'Not active'),
-  survey_year = '1996'
+  year = '1996',
+  year = as.numeric(year)
   ) %>% 
   mutate_at(1:4, function(x) case_when(
     x %in% c("Definitely should be", "Probably should be") ~  '1',
@@ -135,7 +139,8 @@ za47 <- za47 %>%
            employment == "Part-time employed,main job" ~ 'Part-time',
            employment == "Unemployed" ~ 'Active unemployed',
            TRUE ~ 'Not active'),
-         survey_year = '2006'
+         year = '2006',
+         year = as.numeric(year)
          ) %>% 
   filter(!is.na(country)) %>% 
   mutate_at(1:4, function(x) case_when(
@@ -147,4 +152,25 @@ za47 <- za47 %>%
 ## join za29 & za47
 za <- bind_rows(za29, za47)
 
-readr::write_csv(za, 'combined_survey_data.csv')
+## lastly, we'll create a new variable, age_squared
+za$age_squared <- za$age^2
+
+## merge with the ls data. As the dataset contains a
+## spelling error (Isreal instead of Israel), we will
+## fix that small typo before joining the datasets.
+## we will also rename the variables before merging
+l2$country <- recode(l2$country, Isreal = "Israel")
+l2 <- l2 %>%
+      select(employment_rate = emprate, 
+             immigrant_stock = foreignpct,
+             welfare_expenditures = socx,
+             change_immigrant_stock = netmigpct,
+             year, country) %>%
+      mutate_at(1:5, as.numeric)
+
+df <- left_join(l2, za, by = c("country", "year"))
+df <- df %>%
+      select(year, country, everything())
+
+## save data
+readr::write_csv(df, 'combined_data.csv')
