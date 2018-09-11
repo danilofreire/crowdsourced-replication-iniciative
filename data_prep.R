@@ -104,7 +104,7 @@ za29 <- za29 %>%
   year = as.numeric(year)
   ) %>% 
   mutate_at(1:4, function(x) case_when(
-    x %in% c("Definitely should be", "Probably should be") ~  '1',
+    x %in% c("Definitely should", "Probably should") ~  '1',
     TRUE ~ '0')) %>% 
   mutate_at(1:4, as.numeric)
   
@@ -119,10 +119,7 @@ za29 <- za29 %>%
 ### employment split into 'Part-time', 'Full-time', 'Not active', 
 #### 'Active unemployed'
 
-### questions: 
-#### what are the 13 countries? Some have no name, only a number
-##### e.g. '276.2'
-#### should NA in the DVs be removed? (I would)
+### ZA4700
 za47 <- za47 %>% 
   select(old_age_care = V28, unemployed = V30, reduce_income_diff = V31,
          jobs = V25, female = sex, age, education = degree, 
@@ -152,13 +149,22 @@ za47 <- za47 %>%
          ) %>% 
   filter(!is.na(country)) %>% 
   mutate_at(1:4, function(x) case_when(
-    x %in% c("Definitely should be", "Probably should be") ~  '1',
+    x %in% c("Definitely should", "Probably should") ~  '1',
     TRUE ~ '0')) %>% # NA question arises here
   mutate_at(1:4, as.numeric)
 
 
 ## join za29 & za47
 za <- bind_rows(za29, za47)
+
+## filter 13 rich democracies that appear in the 2 survey waves
+za <- za %>% 
+      filter(country %in% c("Australia", "Canada", "France", "Germany", "Great_Britain",
+                            "Israel", "Japan", "New_Zealand", "Norway", "Spain",
+                            "Sweden", "Switzerland", "United_States"))
+table(za$country)
+
+## Save data
 readr::write_csv(za, "za.csv")
 
 ## merge with the ls data. As the dataset contains a
@@ -170,156 +176,176 @@ l2 <- l2 %>%
             country == 'Czech Republic' ~ 'Czech_Republic',
             country == 'Isreal' ~ 'Israel',
             country == 'New Zealand' ~ 'New_Zealand',
-            country == 'cz' ~ 'Czech_Republic',
             country == 'United Kingdom' ~ 'Great_Britain',
             country == 'United States' ~ 'United_States',
             country == 'South Korea' ~ 'South_Korea',
             TRUE ~ country)) 
 
-l2 <- l2 %>% select(employment_rate = emprate, immigrant_stock = foreignpct,
-                     welfare_expenditures = socx, change_immigrant_stock = netmigpct,
-                     year, country) %>% mutate_at(1:5, as.numeric) 
+l2 <- l2 %>% 
+      select(employment_rate = emprate, immigrant_stock = foreignpct,
+             welfare_expenditures = socx, change_immigrant_stock = netmigpct,
+             year, country) %>% mutate_at(1:5, as.numeric) 
 
-df <- left_join(l2, za, by = c("country", "year")) 
+df <- left_join(za, l2, by = c("country", "year")) 
 
 ## change reference categories 
 df <- within(df, education <- relevel(as.factor(education), ref = "Secondary")) 
 df <- within(df, employment <- relevel(as.factor(employment), ref = "Full-time")) 
-df <- df %>% select(year, country, everything()) 
+df <- df %>% select(year, country, everything()) %>% arrange(country, year) 
 
 ## save data 
-readr::write_csv(df, 'combined_data.csv') 
+haven::write_dta(df, 'combined_data.dta') 
 
 ################## 
 ##### Models #####
 ##################
-names(df)
 summary(m1 <- glm(old_age_care ~ immigrant_stock +
-                 female + age + age_squared + education + employment +
-                 factor(year) + factor(country), 
+                 female + age + I(age^2) + education + employment +
+                 factor(year) + factor(country),
                  data = df, family = binomial(link = "logit")))
+exp(coef(m1))
 
 summary(m2 <- glm(unemployed ~ immigrant_stock + 
-                  female + age + age_squared + education + employment +
+                  female + age + I(age^2) + education + employment +
                   factor(year) + factor(country),
                   data = df, family = binomial(link = "logit")))
+exp(coef(m2))
 
 summary(m3 <- glm(reduce_income_diff ~ immigrant_stock + 
-                  female + age + age_squared + education + employment +
+                  female + age + I(age^2) + education + employment +
                   factor(year) + factor(country),
                   data = df, family = binomial(link = "logit")))
+exp(coef(m3))
 
 summary(m4 <- glm(jobs ~ immigrant_stock + 
-                  female + age + age_squared + education + employment +
+                  female + age + I(age^2) + education + employment +
                   factor(year) + factor(country),
                   data = df, family = binomial(link = "logit")))
-
+exp(coef(m4))
 
 
 summary(m5 <- glm(old_age_care ~ immigrant_stock + welfare_expenditures + 
-                  female + age + age_squared + education + employment +
+                  female + age + I(age^2) + education + employment +
                   factor(year) + factor(country),
                   data = df, family = binomial(link = "logit")))
+exp(coef(m5))
 
 summary(m6 <- glm(unemployed ~ immigrant_stock + welfare_expenditures + 
-                  female + age + age_squared + education + employment +
+                  female + age + I(age^2) + education + employment +
                   factor(year) + factor(country),
                   data = df, family = binomial(link = "logit")))
+exp(coef(m6))
 
 summary(m7 <- glm(reduce_income_diff ~ immigrant_stock + welfare_expenditures + 
-                  female + age + age_squared + education + employment +
+                  female + age + I(age^2) + education + employment +
                   factor(year) + factor(country),
                   data = df, family = binomial(link = "logit")))
+exp(coef(m7))
 
 summary(m8 <- glm(jobs ~ immigrant_stock + welfare_expenditures +
-                  female + age + age_squared + education + employment +
+                  female + age + I(age^2) + education + employment +
                   factor(year) + factor(country),
                   data = df, family = binomial(link = "logit")))
+exp(coef(m8))
 
 
 
 summary(m9 <- glm(old_age_care ~ immigrant_stock + employment_rate + 
-                  female + age + age_squared + education + employment +
+                  female + age + I(age^2) + education + employment +
                   factor(year) + factor(country),
                   data = df, family = binomial(link = "logit")))
+exp(coef(m9))
 
 summary(m10 <- glm(unemployed ~ immigrant_stock + employment_rate + 
-                   female + age + age_squared + education + employment +
+                   female + age + I(age^2) + education + employment +
                    factor(year) + factor(country),
                    data = df, family = binomial(link = "logit")))
+exp(coef(m10))
 
 summary(m11 <- glm(reduce_income_diff ~ immigrant_stock + employment_rate +
-                   female + age + age_squared + education + employment +
+                   female + age + I(age^2) + education + employment +
                    factor(year) + factor(country),
                    data = df, family = binomial(link = "logit")))
+exp(coef(m11))
 
 summary(m12 <- glm(jobs ~ immigrant_stock + employment_rate +
-                   female + age + age_squared + education + employment +
+                   female + age + I(age^2) + education + employment +
                    factor(year) + factor(country),
                    data = df, family = binomial(link = "logit")))
+exp(coef(m12))
 
 
 
 summary(m13 <- glm(old_age_care ~ change_immigrant_stock +  
-                   female + age + age_squared + education + employment +
+                   female + age + I(age^2) + education + employment +
                    factor(year) + factor(country),
                    data = df, family = binomial(link = "logit")))
+exp(coef(m13))
 
 summary(m14 <- glm(unemployed ~ change_immigrant_stock + 
-                   female + age + age_squared + education + employment +
+                   female + age + I(age^2) + education + employment +
                    factor(year) + factor(country),
                    data = df, family = binomial(link = "logit")))
+exp(coef(m14))
 
 summary(m15 <- glm(reduce_income_diff ~ change_immigrant_stock + 
-                   female + age + age_squared + education + employment +
+                   female + age + I(age^2) + education + employment +
                    factor(year) + factor(country),
                    data = df, family = binomial(link = "logit")))
+exp(coef(m15))
 
 summary(m16 <- glm(jobs ~ change_immigrant_stock +
-                   female + age + age_squared + education + employment +
+                   female + age + I(age^2) + education + employment +
                    factor(year) + factor(country),
                    data = df, family = binomial(link = "logit")))
-
+exp(coef(m16))
 
 
 summary(m17 <- glm(old_age_care ~ change_immigrant_stock + welfare_expenditures +
-                   female + age + age_squared + education + employment +
+                   female + age + I(age^2) + education + employment +
                    factor(year) + factor(country),
                    data = df, family = binomial(link = "logit")))
+exp(coef(m17))
 
 summary(m18 <- glm(unemployed ~ change_immigrant_stock + welfare_expenditures + 
-                   female + age + age_squared + education + employment +
+                   female + age + I(age^2) + education + employment +
                    factor(year) + factor(country),
                    data = df, family = binomial(link = "logit")))
+exp(coef(m18))
 
 summary(m19 <- glm(reduce_income_diff ~ change_immigrant_stock + welfare_expenditures +
-                   female + age + age_squared + education + employment +
+                   female + age + I(age^2) + education + employment +
                    factor(year) + factor(country),
                    data = df, family = binomial(link = "logit")))
+exp(coef(m19))
 
 summary(m20 <- glm(jobs ~ change_immigrant_stock + welfare_expenditures +
-                   female + age + age_squared + education + employment +
+                   female + age + I(age^2) + education + employment +
                    factor(year) + factor(country),
                    data = df, family = binomial(link = "logit")))
-
+exp(coef(m20))
 
 
 summary(m21 <- glm(old_age_care ~ change_immigrant_stock + employment_rate +
-                   female + age + age_squared + education + employment +
+                   female + age + I(age^2) + education + employment +
                    factor(year) + factor(country),
                    data = df, family = binomial(link = "logit")))
+exp(coef(m21))
 
 summary(m22 <- glm(unemployed ~ change_immigrant_stock + employment_rate + 
-                   female + age + age_squared + education + employment +
+                   female + age + I(age^2) + education + employment +
                    factor(year) + factor(country),
                    data = df, family = binomial(link = "logit")))
+exp(coef(m22))
 
 summary(m23 <- glm(reduce_income_diff ~ change_immigrant_stock + employment_rate +
-                   female + age + age_squared + education + employment +
+                   female + age + I(age^2) + education + employment +
                    factor(year) + factor(country),
                    data = df, family = binomial(link = "logit")))
+exp(coef(m23))
 
 summary(m24 <- glm(jobs ~ change_immigrant_stock + employment_rate +
-                   female + age + age_squared + education + employment +
+                   female + age + I(age^2) + education + employment +
                    factor(year) + factor(country),
                    data = df, family = binomial(link = "logit")))
+exp(coef(m24))
