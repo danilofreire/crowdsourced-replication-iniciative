@@ -1,0 +1,119 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage{rotating}
+\usepackage{lscape}
+\usepackage{amsmath,amssymb}
+\usepackage[stable]{footmisc}
+\usepackage{lmodern}
+\usepackage{libertine}
+\usepackage[libertine]{newtxmath}
+\usepackage[scaled=.95]{inconsolata}
+\usepackage[authoryear]{natbib}
+\usepackage{babelbib}
+\usepackage[usenames,dvipsnames]{xcolor}
+\definecolor{darkblue}{rgb}{0.0,0.0,0.55}
+\setcitestyle{aysep={}} 
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd{\NAT@citex}
+  {\@citea\NAT@hyper@{%
+	 \NAT@nmfmt{\NAT@nm}%
+	 \hyper@natlinkbreak{\NAT@aysep\NAT@spacechar}{\@citeb\@extra@b@citeb}%
+	 \NAT@date}}
+  {\@citea\NAT@nmfmt{\NAT@nm}%
+   \NAT@aysep\NAT@spacechar\NAT@hyper@{\NAT@date}}{}{}
+\patchcmd{\NAT@citex}
+  {\@citea\NAT@hyper@{%
+	 \NAT@nmfmt{\NAT@nm}%
+	 \hyper@natlinkbreak{\NAT@spacechar\NAT@@open\if*#1*\else#1\NAT@spacechar\fi}%
+   {\@citeb\@extra@b@citeb}%
+	 \NAT@date}}
+  {\@citea\NAT@nmfmt{\NAT@nm}%
+   \NAT@spacechar\NAT@@open\if*#1*\else#1\NAT@spacechar\fi\NAT@hyper@{\NAT@date}}
+  {}{}
+\makeatother
+\usepackage{setspace}
+\usepackage[top=2.3cm,bottom=2.3cm,left=2.3cm,right=2.3cm]{geometry}
+\usepackage{hyperref}
+\usepackage{graphicx}
+% \usepackage{lineno}   % add line numbers before submission
+%\linenumbers
+\usepackage{dcolumn}
+\usepackage{float}
+\floatplacement{figure}{H}
+\usepackage{pgf}
+\usepackage{tikz}
+\usetikzlibrary{arrows}
+\usetikzlibrary{positioning}
+\usepackage{mathtools}
+\usepackage{caption}
+\usepackage[UKenglish]{babel}
+\usepackage[UKenglish]{isodate}
+\cleanlookdateon
+\exhyphenpenalty=10000
+\hyphenpenalty=10000
+\widowpenalty=1000
+\clubpenalty=1000
+\onehalfspacing
+	
+\hypersetup{pdftitle={Crowdsourced Replication Initiative -- Study Extension},
+		pdfauthor={Danilo Freire and Robert McDonnell},
+		pdfborder={0 0 0},
+		breaklinks=true,
+		linkcolor=Mahogany,
+		citecolor=Mahogany,
+		urlcolor=darkblue,
+		colorlinks=true}
+	
+\title{Crowdsourced Replication Initiative -- Study Extension\thanks{All information necessary to replicate our contribution to the project is available at \href{https://github.com/danilofreire/crowdsourced-replication-iniciative}{\texttt{https://github.com/danilofreire/crowdsourced-replication-iniciative}}. Please contact the authors should you require any assistance to reproduce the results.}}
+	
+\author{Danilo Freire\thanks{Postdoctoral Research Associate, The Political Theory Project, Brown University, 8 Fones Alley, Providence, RI, 02912, \href{mailto:danilo_freire@brown.edu}{\texttt{danilo\_freire@brown.edu}}, \href{http://danilofreire.com}{\texttt{http://danilofreire.com}}. Corresponding author.} \and Robert McDonnell\thanks{Data Scientist, First Data Corporation. Views expressed are author's own.}}
+
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\doublespacing
+
+\section{Summary}
+
+We suggest five extensions to \citet{brady2014does}:
+
+\begin{itemize}
+    \item Add the 2016 ISSP survey wave to the original sample
+    \item Use multiple imputation to address the issue of missing values
+    \item Employ extreme bounds analysis to assess predictor robustness
+    \item Add a hierarchy to the model to explore regional effects
+    \item Use machine learning models to test whether the results are driven by parametric assumptions or not
+\end{itemize}
+
+\section{Sample}
+
+We propose to extend the original study by adding the latest ISSP wave to the sample. This wave was not available when \cite{brady2014does} published their article. Including the 2016 wave to the dataset has two main benefits to our analysis: 1) it increases the sample size, which allows us to observe smaller treatment effects; 2) it provides us with new data to test the explanatory power of the original models.
+
+Our sample will be restricted to the developed countries which are included in all three ISSP waves. They are, in alphabetic order: Australia, France, Germany, Great Britain, Japan, New Zealand, Norway, Spain, Sweden, Switzerland, and the United States of America.
+
+\section{Multiple Imputation}
+
+We will also replicate the analysis using multiple imputation. Multiple imputation consists of adding values to missing observations by using a model that incorporates the randomness in data. The process is usually repeated a few times to get a more realistic sense of the uncertainty of the estimates \citep{little1989analysis, rubin1987multiple}. Under reasonable assumptions, multiple imputation is approximately unbiased, increases the power of statistical tests, and is easy to compute using modern statistical software \citep{lall2016multiple}. We will use the \texttt{Amelia II} package \citep{honaker2011amelia} for the \texttt{R} statistical language \citep{r2018} and replicate all the analyses we include in this proposal.
+
+\section{Regional Hierarchies}
+It is well known that Western European countries have a tendency to maintain larger welfare states \citep{ebbinghaus2001comparing}, however, this dynamic was not modelled in the original work. Our sample contains seven Western European countries out of the total of eleven. We propose to add an extra level of hierarchy to the statistical models to explore this further. This higher level will model regional differences by grouping the countries into two groups -- `Europe' and `Not Europe'. In practical terms, this can be easily done by re-writing the original models in a probabilistic programming language, such as Stan \citep{carpenter2017stan}. In this way, observations which may be correlated with one another (because of shared Western European attitudes towards social expenditure, for example) can be grouped together and this correlation can be explored. We may also decide to explore different groupings: `Anglo-America' (the United Kingdom and the U.S.A) and the rest, in order to exploit `welfare retrenchment' in the first group \citep{ebbinghaus2001comparing}.
+
+\section{Extreme Bounds Analysis}
+
+We also intend to assess the robustness of our findings with extreme bounds analysis (EBA). The estimation of EBA consists in running every possible permutation of the explanatory variables including in a given model. The coefficients are then analysed as a distribution. In particular, we are interested in the share of the coefficients that lies above or below zero, so that we can evaluate whether the explanatory variables are sensitive to changes in the model specification \citep{leamer1985sensitivity,sala1997just}. 
+
+It is nonetheless tricky to estimate hierarchical models using extreme bounds analysis. We may therefore include all variables as a single level model, either removing country fixed effects, or including it as dummies.
+
+\section{Machine Learning Models}
+
+Lastly, we intend to employ machine learning tools to assess whether the results obtained are due to parametric parameter assumptions. Machine learning methods such as random forests \citep{breiman2001random} or gradient boosting \citep{friedman2001greedy} have many desirable properties, such as `highly accurate predictions, robustness to noise and outliers, internally unbiased estimate of the generalisation error, efficient computation, and the ability to handle large dimensions and many predictors' \citep[7]{muchlinski2015comparing}. Thus, random forest allows the researcher to estimate very flexible models with minimal assumptions. Unlike parametric methods such as ordinary least squares or logistic regressions, the analyst does not have to impose any distributional form to the data-generating process. As a result, random forest is able to effectively uncover complex, nonlinear interaction effects in the data without prespecification \citep{jones2015exploratory}.
+
+Whereas machine learning methods perform well without multilevel specifications, recent \texttt{R} packages such as \texttt{MixRF} are able to estimate mixed effects models\footnote{More information is available at \href{https://github.com/randel/MixRF}{\texttt{https://github.com/randel/MixRF}}.}. In the case the package does not work well with our data, another sensible option would be to include the country-level predictors as features in the model.
+
+\newpage    
+\bibliography{references}
+\bibliographystyle{apalike}
+\end{document}
+	
